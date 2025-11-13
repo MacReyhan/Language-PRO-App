@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Pro - Authenticated Assistant</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Styles for a modern look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7fa;
+        }
+        .container-card {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            background-color: white;
+            transition: all 0.3s ease-in-out;
+        }
+        .action-button {
+            transition: all 0.2s;
+            transform: scale(1);
+        }
+        .action-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        .action-button:active {
+            transform: scale(0.98);
+        }
+        .voice-icon {
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .voice-icon:hover {
+            opacity: 1;
+        }
+        /* Auth View Transition */
+        .auth-view, .app-view {
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+        }
+        .hidden-transition {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            display: block; /* Keep display block for transition */
+        }
+        .visible-transition {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex items-center justify-center">
+
+    <div id="main-container" class="w-full max-w-4xl container-card rounded-xl p-6 md:p-10">
+
+        <!-- Loading View -->
+        <div id="loading-view" class="flex flex-col items-center justify-center p-12 text-gray-500">
+             <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 font-semibold">Checking your credentials, hold up...</p>
+        </div>
+        
+        <!-- Authentication View (Sign In/Sign Up) -->
+        <div id="auth-view" class="auth-view hidden-transition">
+            
+            <h1 class="text-3xl font-extrabold text-blue-600 mb-2 text-center">Language Pro Access 🔑</h1>
+            <p class="text-gray-500 mb-8 text-center" id="auth-title-text">Sign In to continue, bro.</p>
+
+            <div class="max-w-md mx-auto">
+                <form id="auth-form" class="space-y-6">
+                    <div>
+                        <label for="auth-email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                        <input type="email" id="auth-email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="auth-password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="auth-password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <button type="submit" id="auth-submit-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Sign In
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <button id="toggle-auth-btn" class="text-sm font-medium text-blue-600 hover:text-blue-500 transition duration-150 ease-in-out">
+                        Don't have an account? Sign Up
+                    </button>
+                </div>
+
+                <!-- Auth Error Box -->
+                <div id="auth-error-box" class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden" role="alert">
+                    <p id="auth-error-message" class="font-medium text-sm"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Application View (After Login) -->
+        <div id="app-view" class="app-view hidden-transition">
+            <header class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Language Pro 💬</h1>
+                <div class="flex items-center space-x-3">
+                    <span class="text-sm font-medium text-gray-500 hidden md:inline">Logged in: <span id="user-email-display" class="font-semibold text-gray-700"></span></span>
+                    <button id="sign-out-btn" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg text-sm hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 transition duration-150">
+                        Sign Out
+                    </button>
+                </div>
+            </header>
+            <p class="text-gray-500 mb-8">Hey, what's up? Drop your text below and let's polish it up!</p>
+
+            <!-- Loading Spinner and Status -->
+            <div id="status-message" class="mb-4 text-center text-sm font-medium text-blue-600 hidden">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+            </div>
+
+            <!-- Input Area -->
+            <div class="mb-6 relative">
+                <label for="input-text" class="block text-sm font-semibold text-gray-700 mb-2">Your Input</label>
+                <textarea id="input-text" rows="6" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 resize-none text-gray-800" placeholder="Type or speak your text here..."></textarea>
+                
+                <!-- Voice Input Button -->
+                <button id="voice-input-btn" class="absolute bottom-4 right-4 p-2 text-gray-500 voice-icon" title="Voice Input">
+                    <!-- Microphone Icon (Lucide icon equivalent) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    <div id="recording-indicator" class="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500 hidden animate-ping"></div>
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col md:flex-row gap-4 mb-8">
+                <button id="grammar-check-btn" class="action-button flex-1 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    Grammar Check (Enter)
+                </button>
+                <button id="paraphrase-btn" class="action-button flex-1 bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                    Paraphrase
+                </button>
+                <button id="hinglish-btn" class="action-button flex-1 bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-4 focus:ring-teal-300">
+                    Translate to Hinglish
+                </button>
+            </div>
+
+            <!-- Output Area -->
+            <div>
+                <label for="output-text" class="block text-sm font-semibold text-gray-700 mb-2">Result</label>
+                <textarea id="output-text" rows="6" class="w-full p-4 border border-gray-300 rounded-lg bg-gray-50 resize-none text-gray-800" placeholder="Your transformed text will appear here..." readonly></textarea>
+            </div>
+            
+            <!-- App Error/Modal Area -->
+            <div id="error-box" class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden" role="alert">
+                <p id="error-message" class="font-medium"></p>
+                <p id="error-detail" class="text-sm mt-1"></p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Firebase and API Call Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Firestore logging for debugging
+        setLogLevel('debug');
+
+        // ----------------------------------------------------------------------
+        // 🛑 CRITICAL STEP: YOUR HARDCODED FIREBASE CONFIG 🛑
+        // ----------------------------------------------------------------------
+        
+        // 1. Set the App ID to your new Firebase Project ID
+        const appId = "language-pro-f55ea"; 
+        
+        // 2. YOUR FULL firebaseConfig OBJECT
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpTa0-Xs4owjDg24y9stHEae8FvkZ8cns",
+            authDomain: "language-pro-f55ea.firebaseapp.com",
+            projectId: "language-pro-f55ea",
+            storageBucket: "language-pro-f55ea.firebasestorage.app",
+            messagingSenderId: "105582917502",
+            appId: "1:105582917502:web:1286de0cfc13d01624252f",
+            measurementId: "G-LK87B80R0T" 
+        };
+        
+        // We set the initialAuthToken to null as it's not provided by GitHub Pages
+        const initialAuthToken = null; 
+        
+        // ----------------------------------------------------------------------
+        // END OF CONFIG REPLACEMENT SECTION
+        // ----------------------------------------------------------------------
+        
+        let db;
+        let auth;
+        let userId = 'anonymous';
+
+        // --- DOM ELEMENTS (unchanged) ---
+        const loadingView = document.getElementById('loading-view');
+        const authView = document.getElementById('auth-view');
+        const appView = document.getElementById('app-view');
+
+        // Auth elements
+        const authForm = document.getElementById('auth-form');
+        const authEmailInput = document.getElementById('auth-email');
+        const authPasswordInput = document.getElementById('auth-password');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+        const toggleAuthBtn = document.getElementById('toggle-auth-btn');
+        const authTitleText = document.getElementById('auth-title-text');
+        const authErrorBox = document.getElementById('auth-error-box');
+        const authErrorMessage = document.getElementById('auth-error-message');
+        
+        // App elements
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const inputTextarea = document.getElementById('input-text');
+        const outputTextarea = document.getElementById('output-text');
+        const statusMessage = document.getElementById('status-message');
+        const grammarBtn = document.getElementById('grammar-check-btn');
+        const paraphraseBtn = document.getElementById('paraphrase-btn');
+        const hinglishBtn = document.getElementById('hinglish-btn');
+        const voiceInputBtn = document.getElementById('voice-input-btn');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
+        const errorDetail = document.getElementById('error-detail');
+
+        // Initial Content
+        const input_text = "Hey there, I need your help with a text I wrote for a new customer service bot we're launching. It needs to sound professional but chill, you know?";
+        inputTextarea.value = input_text;
+        
+        // Auth State Management
+        let isSigningUp = false;
+
+        // --- UTILITY FUNCTIONS (unchanged) ---
+        function setView(viewId) {
+            loadingView.classList.add('hidden');
+            authView.classList.add('hidden-transition');
+            appView.classList.add('hidden-transition');
+
+            if (viewId === 'auth') {
+                authView.classList.remove('hidden-transition');
+                authView.classList.add('visible-transition');
+                // Ensure hidden is removed right before showing
+                setTimeout(() => {
+                     authView.classList.remove('hidden');
+                     appView.classList.add('hidden');
+                }, 10); 
+            } else if (viewId === 'app') {
+                appView.classList.remove('hidden-transition');
+                appView.classList.add('visible-transition');
+                // Ensure hidden is removed right before showing
+                setTimeout(() => {
+                    appView.classList.remove('hidden');
+                    authView.classList.add('hidden');
+                }, 10);
+            } else {
+                loadingView.classList.remove('hidden');
+                authView.classList.add('hidden');
+                appView.classList.add('hidden');
+            }
+            hideAuthError();
+        }
+
+        function showAuthError(message) {
+            authErrorMessage.textContent = message;
+            authErrorBox.classList.remove('hidden');
+        }
+
+        function hideAuthError() {
+            authErrorBox.classList.add('hidden');
+            authErrorMessage.textContent = '';
+        }
+
+        function showStatus(text) {
+            statusMessage.textContent = text;
+            statusMessage.classList.remove('hidden');
+        }
+
+        function hideStatus() {
+            statusMessage.classList.add('hidden');
+        }
+
+        function showError(title, detail = '') {
+            errorMessage.textContent = title;
+            errorDetail.textContent = detail;
+            errorBox.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorBox.classList.add('hidden');
+        }
+
+        // --- FIREBASE INITIALIZATION AND AUTH ---
+
+        // Since firebaseConfig is now hardcoded, it will always be defined
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            
+            // NOTE: We skip the initialAuthToken logic for external deployment
+            
+            // 2. Set up Auth State Listener
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    userEmailDisplay.textContent = user.email || 'Anonymous';
+                    console.log("User authenticated:", userId);
+                    
+                    // Show the main app view
+                    setView('app');
+
+                    // Update last active status in Firestore
+                    try {
+                        // Path: artifacts/appId/users/userId/settings/app_state
+                        await setDoc(doc(db, 'artifacts', appId, 'users', userId, 'settings', 'app_state'), {
+                            last_active: new Date().toISOString()
+                        }, { merge: true });
+                    } catch (e) {
+                        console.error("Firestore write failed (app_state):", e);
+                    }
+                    
+                } else {
+                    userId = crypto.randomUUID();
+                    console.log("User signed out or anonymous. Showing Auth UI.");
+                    setView('auth');
+                }
+            });
+
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+            // This will only run if there is a syntax error in the hardcoded config
+            setView('auth'); 
+        }
+
+
+        // --- AUTH HANDLERS (unchanged) ---
+        
+        toggleAuthBtn.addEventListener('click', () => {
+            isSigningUp = !isSigningUp;
+            hideAuthError();
+            
+            if (isSigningUp) {
+                authTitleText.textContent = "Sign Up and get started! 🥳";
+                authSubmitBtn.textContent = "Sign Up";
+                toggleAuthBtn.textContent = "Already have an account? Sign In";
+            } else {
+                authTitleText.textContent = "Sign In to continue, bro.";
+                authSubmitBtn.textContent = "Sign In";
+                toggleAuthBtn.textContent = "Don't have an account? Sign Up";
+            }
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAuthError();
+            
+            const email = authEmailInput.value;
+            const password = authPasswordInput.value;
+
+            if (password.length < 6) {
+                showAuthError("Password must be at least 6 characters long, dude.");
+                return;
+            }
+
+            authSubmitBtn.disabled = true;
+            authSubmitBtn.textContent = isSigningUp ? "Signing Up..." : "Signing In...";
+
+            try {
+                if (isSigningUp) {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    
+                    // CRITICAL: Store user profile data in Firestore upon sign up
+                    // Path: artifacts/appId/users/userId/profile/info
+                    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info'), {
+                        email: user.email,
+                        created: new Date().toISOString(),
+                        app: appId
+                    });
+
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                console.error("Auth Error:", error);
+                let message = "Authentication failed. Check your email and password.";
+                if (error.code === 'auth/email-already-in-use') {
+                    message = "This email is already registered. Try signing in!";
+                } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    message = "Invalid credentials, bro. Try again.";
+                }
+                showAuthError(message);
+            } finally {
+                authSubmitBtn.disabled = false;
+                authSubmitBtn.textContent = isSigningUp ? "Sign Up" : "Sign In";
+            }
+        });
+
+        signOutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Sign out error:", error);
+                showError("Sign Out Failed!", "Something went wrong logging you out.");
+            }
+        });
+
+        // --- GEMINI API INTEGRATION (unchanged) ---
+
+        const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
+        const API_KEY = ""; // Canvas provides this dynamically if empty
+        
+        // Exponential backoff for API calls
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        // Throw error if response status is not OK (e.g., 429, 500)
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        console.error("Max retries reached. Failing request.", error);
+                        throw error;
+                    }
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    console.warn(`Retry ${i + 1} failed. Retrying in ${Math.round(delay / 1000)}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+
+        /**
+         * Calls the Gemini API for text transformation.
+         * @param {string} userQuery The text to process.
+         * @param {string} systemInstruction The persona and task for the model.
+         * @returns {Promise<string>} The generated text.
+         */
+        async function callGeminiAPI(userQuery, systemInstruction) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${API_KEY}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: systemInstruction }]
+                },
+            };
+
+            const options = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            };
+
+            try {
+                const response = await fetchWithRetry(apiUrl, options);
+                const result = await response.json();
+
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!text) {
+                     throw new Error("API response was empty or malformed.");
+                }
+
+                return text;
+
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                throw new Error(`Failed to process text. Details: ${error.message}`);
+            }
+        }
+
+        // --- ACTION HANDLERS (unchanged) ---
+
+        /**
+         * Handles all text transformation actions.
+         * @param {string} instruction The specific action (e.g., 'grammar', 'paraphrase').
+         */
+        async function handleAction(instruction) {
+            hideError();
+            const input = inputTextarea.value.trim();
+            if (!input) {
+                showError("Hold up!", "Please enter some text before running an operation, bro.");
+                return;
+            }
+
+            let systemPrompt;
+            let actionText;
+
+            switch (instruction) {
+                case 'grammar':
+                    actionText = 'Grammar Check';
+                    systemPrompt = "You are an expert copy editor and language model. Your task is to correct any grammatical errors, spelling mistakes, and awkward phrasing in the user's text. Maintain the original meaning and adopt a professional yet casual, friendly tone suitable for customer interactions.";
+                    break;
+                case 'paraphrase':
+                    actionText = 'Paraphrase';
+                    systemPrompt = "You are an expert rewriter. Your task is to paraphrase the user's text, making it sound fresh and clear while maintaining the professional yet casual, friendly tone suitable for customer interactions. The output should be the full, rephrased text.";
+                    break;
+                case 'hinglish':
+                    actionText = 'Hinglish Translation';
+                    systemPrompt = "You are an expert translator specializing in Hinglish (a mixture of Hindi and English) conversation. Translate the user's English text into a natural-sounding Hinglish conversational style. Retain the original meaning and maintain a professional yet casual, friendly tone. The output should be the full translated text.";
+                    break;
+                default:
+                    return;
+            }
+
+            outputTextarea.value = ''; // Clear previous output
+            showStatus(`Running ${actionText}...`);
+
+            try {
+                const result = await callGeminiAPI(input, systemPrompt);
+                outputTextarea.value = result;
+                hideStatus();
+                
+                // Save result to firestore
+                if (db && userId && auth.currentUser) {
+                    // Path: artifacts/appId/users/userId/operations/new_doc_id
+                    await setDoc(doc(db, 'artifacts', appId, 'users', userId, 'operations', `op_${Date.now()}`), {
+                        action: instruction,
+                        input: input,
+                        output: result,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            } catch (error) {
+                hideStatus();
+                showError(`What the heck? ${actionText} failed!`, error.message);
+            }
+        }
+
+        // --- VOICE INPUT LOGIC (Web Speech API) ---
+
+        let recognition = null;
+        let isRecording = false;
+
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false; // Stop after a single, continuous input
+            recognition.lang = 'en-US';
+            recognition.interimResults = true; // Show results as they come in
+
+            recognition.onstart = () => {
+                isRecording = true;
+                recordingIndicator.classList.remove('hidden');
+                voiceInputBtn.classList.add('bg-red-500', 'text-white', 'rounded-full');
+                showStatus("Listening... Speak clearly now, dude!");
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        inputTextarea.value += (inputTextarea.value ? ' ' : '') + transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Voice Recognition Error:", event.error);
+                hideStatus();
+                isRecording = false;
+                recordingIndicator.classList.add('hidden');
+                voiceInputBtn.classList.remove('bg-red-500', 'text-white', 'rounded-full');
+
+                let detail = "Check your browser's microphone permissions. The app needs HTTPS or localhost to work properly. Reload the page after allowing access.";
+                if (event.error === 'not-allowed') {
+                    showError("Microphone Access Blocked! 🛑", detail);
+                } else if (event.error === 'no-speech') {
+                    showError("No Speech Detected!", "Couldn't hear anything. Try again.");
+                } else {
+                    showError(`Voice Error: ${event.error}`, detail);
+                }
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                recordingIndicator.classList.add('hidden');
+                voiceInputBtn.classList.remove('bg-red-500', 'text-white', 'rounded-full');
+                if (!errorBox.classList.contains('hidden')) return; 
+                hideStatus();
+            };
+
+            voiceInputBtn.addEventListener('click', () => {
+                if (isRecording) {
+                    recognition.stop();
+                } else {
+                    hideError();
+                    inputTextarea.focus();
+                    recognition.start();
+                }
+            });
+
+        } else {
+            voiceInputBtn.disabled = true;
+            voiceInputBtn.title = "Browser does not support Speech Recognition API.";
+            voiceInputBtn.classList.add('opacity-30', 'cursor-not-allowed');
+            setTimeout(() => {
+                showError("Browser limitation:", "This browser doesn't support the required Speech Recognition API. Sorry, dude!");
+            }, 500);
+        }
+
+        // --- GENERAL EVENT LISTENERS (unchanged) ---
+
+        grammarBtn.addEventListener('click', () => handleAction('grammar'));
+        paraphraseBtn.addEventListener('click', () => handleAction('paraphrase'));
+        hinglishBtn.addEventListener('click', () => handleAction('hinglish'));
+        
+        // Enter key listener for Grammar Check
+        inputTextarea.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault(); // Prevent new line in textarea
+                handleAction('grammar');
+            }
+        });
+        
+    </script>
+</body>
+</html>
