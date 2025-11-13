@@ -101,21 +101,41 @@
         .hover-bg-primary:hover { background-color: var(--primary-hover); }
         .border-primary { border-color: var(--primary-color); }
         
-        .action-button-1 { background-color: var(--action-1); }
-        .action-button-2 { background-color: var(--action-2); }
-        .action-button-3 { background-color: var(--action-3); }
+        /* New styling for dropdown menu */
+        .dropdown-menu {
+            right: 0;
+            top: 100%;
+            z-index: 10;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none;
+            background-color: var(--card-bg);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .dropdown-menu.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .dropdown-item {
+            color: var(--text-color);
+            transition: background-color 0.1s;
+        }
+        .dropdown-item:hover {
+            background-color: var(--input-bg);
+            color: var(--primary-color);
+        }
 
-        .action-button {
+        .action-icon {
+            color: var(--subtle-text);
             transition: all 0.2s;
-            transform: scale(1);
         }
-        .action-button:hover {
-            transform: scale(1.03);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        .action-icon:hover {
+            color: var(--primary-color);
+            transform: scale(1.1);
         }
-        .action-button:active {
-            transform: scale(0.98);
-        }
+
         .voice-icon {
             opacity: 0.6;
             transition: opacity 0.2s, color 0.3s;
@@ -259,9 +279,14 @@
                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.44a2 2 0 0 1-2 2h-.44a2 2 0 0 0-2 2v.44a2 2 0 0 1-2 2H2a2 2 0 0 0 2 2v.44a2 2 0 0 1 2 2h.44a2 2 0 0 0 2 2v.44a2 2 0 0 1 2 2h.44a2 2 0 0 0 2 2v.44a2 2 0 0 1 2 2h.44a2 2 0 0 0 2-2v-.44a2 2 0 0 1 2-2h.44a2 2 0 0 0 2-2v-.44a2 2 0 0 1 2-2h2v-.44a2 2 0 0 0-2-2h-.44a2 2 0 0 1-2-2v-.44a2 2 0 0 0-2-2v-.44a2 2 0 0 1-2-2h-.44a2 2 0 0 0-2-2v-.44a2 2 0 0 1-2-2h-.44A2 2 0 0 0 12.22 2z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
                     
-                    <!-- Sign Out Button -->
+                    <!-- Sign Out Button (Used for full users) -->
                     <button id="sign-out-btn" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg text-sm hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 transition duration-150">
                         Sign Out
+                    </button>
+                    
+                    <!-- Start Session Button (Used for guest users) -->
+                    <button id="start-session-btn" class="bg-primary text-white font-semibold py-2 px-4 rounded-lg text-sm hover-bg-primary focus:outline-none focus:ring-4 focus:ring-primary hidden">
+                        Start Full Session
                     </button>
                 </div>
             </header>
@@ -289,17 +314,46 @@
                 </button>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex flex-col md:flex-row gap-4 mb-8">
-                <button id="grammar-check-btn" class="action-button action-button-1 flex-1 text-white font-semibold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300">
-                    Grammar Check (Enter)
+            <!-- Action Buttons (New Minimalistic Icon Style) -->
+            <div class="flex justify-center md:justify-start gap-6 mb-8 p-3 rounded-lg border border-gray-200" style="background-color: var(--input-bg);">
+                
+                <!-- Grammar Check -->
+                <button id="grammar-check-btn" class="action-icon p-2 rounded-full border border-transparent hover:border-gray-400" title="Grammar Check (Enter)">
+                    <!-- Feather Icon: Check Circle -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 </button>
-                <button id="paraphrase-btn" class="action-button action-button-2 flex-1 text-white font-semibold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-indigo-300">
-                    Paraphrase
+
+                <!-- Paraphrase -->
+                <button id="paraphrase-btn" class="action-icon p-2 rounded-full border border-transparent hover:border-gray-400" title="Paraphrase (Rewrite)">
+                    <!-- Feather Icon: Pen Tool -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L18 13z"/></svg>
                 </button>
-                <button id="hinglish-btn" class="action-button action-button-3 flex-1 text-white font-semibold py-3 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">
-                    Translate to Hinglish
+
+                <!-- Translate to Hinglish -->
+                <button id="hinglish-btn" class="action-icon p-2 rounded-full border border-transparent hover:border-gray-400" title="Translate to Hinglish">
+                    <!-- Feather Icon: Globe -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 0 4 10 15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0-4-10 15.3 15.3 0 0 0 4-10z"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
                 </button>
+                
+                <!-- UPDATED: Customer De-Escalator (Now includes direct response generation) -->
+                <button id="de-escalate-btn" class="action-icon p-2 rounded-full border border-transparent hover:border-gray-400" title="De-Escalate & Respond">
+                    <!-- Custom Icon for De-Escalate/Calm -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M15 9l-6 6"/><path d="M9 9l6 6"/></svg>
+                </button>
+
+                <!-- NEW: Tone Adjustment Dropdown -->
+                <div class="relative group">
+                    <button id="tone-dropdown-btn" class="action-icon p-2 rounded-full border border-transparent hover:border-gray-400 flex items-center" title="Adjust Tone">
+                        <!-- Feather Icon: Zap / Tone -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </button>
+                    <!-- Dropdown Menu -->
+                    <div id="tone-dropdown-menu" class="dropdown-menu absolute mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5">
+                        <button class="dropdown-item w-full text-left px-4 py-2 text-sm" data-tone="casual">Tone: Casual 😎</button>
+                        <button class="dropdown-item w-full text-left px-4 py-2 text-sm" data-tone="professional">Tone: Professional 👔</button>
+                        <button class="dropdown-item w-full text-left px-4 py-2 text-sm" data-tone="firm">Tone: Firm 🛑</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Output Area -->
@@ -344,6 +398,24 @@
                 </div>
             </section>
             
+            <!-- NEW: Knowledge Base Management -->
+            <section id="kb-management-section" class="mb-8 border-b pb-6 border-gray-200">
+                <h3 class="text-xl font-semibold text-text-color mb-3">Knowledge Base Management 🧠</h3>
+                <p class="text-subtle-text mb-3">Paste policy details, product specs, or pricing lists here. This data is used by the AI to generate grounded responses. Maximize speed by keeping it concise, bro. (Public data for all agents)</p>
+                
+                <form id="update-kb-form" class="space-y-4 max-w-full">
+                    <div>
+                        <label for="kb-data-input" class="block text-sm font-medium text-text-color">Knowledge Base Data (Plain Text/CSV)</label>
+                        <textarea id="kb-data-input" rows="8" class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary focus:border-primary"></textarea>
+                    </div>
+                    <button type="submit" id="update-kb-btn" class="bg-primary text-white font-semibold py-2 px-4 rounded-lg hover-bg-primary transition duration-150">
+                        Update Knowledge Base
+                    </button>
+                    <p id="kb-status" class="text-xs text-subtle-text mt-2">Status: Loading...</p>
+                </form>
+            </section>
+
+
             <!-- Profile Details -->
             <section class="mb-8 border-b pb-6 border-gray-200">
                 <h3 class="text-xl font-semibold text-text-color mb-3">Profile Details</h3>
@@ -443,6 +515,9 @@
         // We set the initialAuthToken to null as it's not provided by GitHub Pages
         const initialAuthToken = null; 
         
+        // 3. ADMIN-ONLY KB MANAGEMENT SETTING (YOUR EMAIL)
+        const KB_ADMIN_EMAIL = "sayan.reyhan99@gmail.com";
+        
         // ----------------------------------------------------------------------
         // END OF CONFIG REPLACEMENT SECTION
         // ----------------------------------------------------------------------
@@ -451,6 +526,8 @@
         let auth;
         let userId = 'anonymous';
         let isGuest = false;
+        let referenceData = ''; // Global variable to store loaded Knowledge Base data
+        let isAdmin = false; // Flag to control admin features
 
         // --- DOM ELEMENTS ---
         const loadingView = document.getElementById('loading-view');
@@ -487,6 +564,7 @@
         // App elements
         const userDisplay = document.getElementById('user-display');
         const signOutBtn = document.getElementById('sign-out-btn');
+        const startSessionBtn = document.getElementById('start-session-btn'); // New element
         const settingsBtn = document.getElementById('settings-btn');
         const closeSettingsBtn = document.getElementById('close-settings-btn');
         const inputTextarea = document.getElementById('input-text');
@@ -495,6 +573,9 @@
         const grammarBtn = document.getElementById('grammar-check-btn');
         const paraphraseBtn = document.getElementById('paraphrase-btn');
         const hinglishBtn = document.getElementById('hinglish-btn');
+        const deEscalateBtn = document.getElementById('de-escalate-btn'); // NEW ELEMENT (Triage removed)
+        const toneDropdownBtn = document.getElementById('tone-dropdown-btn'); // NEW ELEMENT
+        const toneDropdownMenu = document.getElementById('tone-dropdown-menu'); // NEW ELEMENT
         const voiceInputBtn = document.getElementById('voice-input-btn');
         const recordingIndicator = document.getElementById('recording-indicator');
         const errorBox = document.getElementById('error-box');
@@ -519,9 +600,15 @@
 
         const deleteAccountForm = document.getElementById('delete-account-form');
         const deletePasswordInput = document.getElementById('delete-password');
+
+        // Knowledge Base Elements
+        const kbManagementSection = document.getElementById('kb-management-section');
+        const updateKBForm = document.getElementById('update-kb-form');
+        const kbDataInput = document.getElementById('kb-data-input');
+        const kbStatus = document.getElementById('kb-status');
         
         // Initial Content
-        const input_text = "Hey there, I need your help with a text I wrote for a new customer service bot we're launching. It needs to sound professional but chill, you know?";
+        const input_text = "The customer said, 'My account was double-charged last month, and the link you sent me is broken! I've been waiting 3 days for a reply, this is ridiculous!'";
         inputTextarea.value = input_text;
         
         // Auth State Management
@@ -562,6 +649,15 @@
                     authView.classList.add('hidden');
                 }, 10);
                 loadProfileDetails();
+                
+                // Show/Hide KB management based on admin status
+                if (isAdmin) {
+                    kbManagementSection.classList.remove('hidden');
+                    kbDataInput.value = referenceData; // Load KB data into the settings form
+                } else {
+                    kbManagementSection.classList.add('hidden');
+                }
+
             } else {
                 loadingView.classList.remove('hidden');
                 authView.classList.add('hidden');
@@ -574,27 +670,29 @@
 
         function setGuestMode(enabled) {
             isGuest = enabled;
-            const actionButtons = [paraphraseBtn, hinglishBtn, settingsBtn, signOutBtn];
-
-            actionButtons.forEach(btn => {
+            // Only Grammar Check is allowed for guests. All others are restricted.
+            const featureButtons = [paraphraseBtn, hinglishBtn, deEscalateBtn, toneDropdownBtn]; 
+            
+            // Toggle feature button disabled state
+            featureButtons.forEach(btn => {
                 if (enabled) {
                     btn.disabled = true;
-                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.classList.add('opacity-30', 'cursor-not-allowed');
                 } else {
                     btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.classList.remove('opacity-30', 'cursor-not-allowed');
                 }
             });
 
             // Grammar Check is always available
             grammarBtn.disabled = false;
-            grammarBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-
+            
             userDisplay.textContent = enabled ? 'Guest (Grammar Check Only)' : auth.currentUser?.displayName || auth.currentUser?.email || auth.currentUser?.phoneNumber || 'Authenticated User';
             
-            // Only show Sign Out button if not a guest
-            signOutBtn.classList.toggle('hidden', enabled);
-            settingsBtn.classList.toggle('hidden', enabled);
+            // Toggle header buttons for Guest vs Full user
+            signOutBtn.classList.toggle('hidden', enabled); // Hide Sign Out for guest
+            settingsBtn.classList.toggle('hidden', enabled); // Hide Settings for guest
+            startSessionBtn.classList.toggle('hidden', !enabled); // Show "Start Full Session" for guest
         }
         
         function setProfileDisplay() {
@@ -693,12 +791,36 @@
                 }
             });
 
+            // --- KNOWLEDGE BASE LOADING ---
+            const kbDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'references', 'support_kb');
+            
+            async function loadReferenceData() {
+                 kbStatus.textContent = 'Status: Fetching data...';
+                 try {
+                     const docSnap = await getDoc(kbDocRef);
+                     if (docSnap.exists() && docSnap.data().kb_data) {
+                         referenceData = docSnap.data().kb_data;
+                         kbStatus.textContent = `Status: Knowledge Base loaded (${(referenceData.length / 1024).toFixed(1)} KB)`;
+                         console.log("Knowledge Base Loaded Successfully.");
+                     } else {
+                         referenceData = '';
+                         kbStatus.textContent = 'Status: Knowledge Base empty. Edit and Save below.';
+                     }
+                 } catch (e) {
+                     console.error("Error loading knowledge base:", e);
+                     kbStatus.textContent = 'Status: Error loading KB data.';
+                 }
+            }
+
             // Set up Auth State Listener
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
                     isGuest = user.isAnonymous;
                     
+                    // Check Admin Status
+                    isAdmin = user.email === KB_ADMIN_EMAIL;
+
                     if (isGuest) {
                         setGuestMode(true);
                         setView('app');
@@ -707,7 +829,7 @@
                         setGuestMode(false);
                         setProfileDisplay();
                         setView('app');
-                        console.log("User authenticated:", userId);
+                        console.log("User authenticated:", userId, isAdmin ? '(ADMIN)' : '');
 
                         // Update last active status in Firestore
                         try {
@@ -723,9 +845,13 @@
                 } else {
                     userId = crypto.randomUUID();
                     isGuest = false;
+                    isAdmin = false;
                     console.log("User signed out or anonymous. Showing Auth UI.");
                     setView('auth');
                 }
+                
+                // Load KB data after initialization
+                loadReferenceData();
             });
 
         } catch (error) {
@@ -759,6 +885,13 @@
                 showAuthError("Failed to sign in as guest. Try a regular sign-in instead.");
             }
         });
+
+        // Handler for Guest "Start Full Session" button
+        startSessionBtn.addEventListener('click', async () => {
+             await signOut(auth); // Sign out the anonymous user
+             setView('auth'); // Switch to the main auth screen
+        });
+
 
         emailAuthForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -943,6 +1076,37 @@
             newEmailInput.placeholder = auth.currentUser.email || 'N/A';
         }
 
+        // --- 5. Knowledge Base Save (ADMIN ONLY) ---
+        updateKBForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideSettingsMessage();
+            
+            // ADMIN CHECK (Ensures the user who clicked is the admin)
+            if (!isAdmin) {
+                 showSettingsMessage("Access Denied! Only the administrator can update the Knowledge Base.", false);
+                 return;
+            }
+
+            const newKBData = kbDataInput.value.trim();
+            
+            try {
+                // Save the data to the public document
+                await setDoc(kbDocRef, {
+                    kb_data: newKBData,
+                    updated_by: auth.currentUser.email || 'Admin',
+                    updated_at: new Date().toISOString()
+                });
+                
+                referenceData = newKBData; // Update global variable instantly
+                kbStatus.textContent = `Status: Knowledge Base SAVED! (${(referenceData.length / 1024).toFixed(1)} KB)`;
+                showSettingsMessage("Knowledge Base successfully updated! AI will now use this context.", true);
+            } catch (error) {
+                console.error("Update KB error:", error);
+                showSettingsMessage(`KB update failed. Details: ${error.message}`, false);
+            }
+        });
+
+
         /**
          * Re-authenticates the user using their password, required for sensitive operations.
          * @param {string} password The user's current password.
@@ -978,7 +1142,7 @@
                 }, { merge: true });
                 
                 setProfileDisplay();
-                showSettingsMessage("Profile name updated successfully! 🎉");
+                showSettingsMessage("Profile name updated successfully! 🎉", true);
             } catch (error) {
                 console.error("Update profile error:", error);
                 showSettingsMessage(`What the fuck? Name update failed. Details: ${error.message}`, false);
@@ -1073,7 +1237,7 @@
         // --- GEMINI API INTEGRATION ---
 
         const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
-        // 🛑 PASTE YOUR KEY HERE TO FIX 403 ERROR 🛑
+        // 🛑 YOUR HARDCODED API KEY 🛑
         const API_KEY = "AIzaSyBpTa0-Xs4owjDg24y9stHEae8FvkZ8cns"; 
         
         // Exponential backoff for API calls
@@ -1088,7 +1252,7 @@
                     return response;
                 } catch (error) {
                     if (i === maxRetries - 1) {
-                        console.error("Max retries reached. Failing request.", error);
+                        console.error("Max retries reached. Failing request. Details:", error);
                         throw error;
                     }
                     const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
@@ -1107,12 +1271,21 @@
          */
         async function callGeminiAPI(userQuery, systemInstruction) {
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${API_KEY}`;
+            
+            // Inject Knowledge Base Data into the system instruction for grounding
+            let finalSystemInstruction = systemInstruction;
+            if (referenceData) {
+                finalSystemInstruction = 
+                    `--- KNOWLEDGE BASE ---\n${referenceData}\n------------------------\n\n` + 
+                    finalSystemInstruction;
+            }
+
 
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
                 tools: [{ "google_search": {} }],
                 systemInstruction: {
-                    parts: [{ text: systemInstruction }]
+                    parts: [{ text: finalSystemInstruction }]
                 },
             };
 
@@ -1147,8 +1320,9 @@
         /**
          * Handles all text transformation actions.
          * @param {string} instruction The specific action (e.g., 'grammar', 'paraphrase').
+         * @param {string|null} tone Optional tone for adjustment functions.
          */
-        async function handleAction(instruction) {
+        async function handleAction(instruction, tone = null) {
             hideError();
             const input = inputTextarea.value.trim();
             if (!input) {
@@ -1156,9 +1330,9 @@
                 return;
             }
 
-            // Guest mode restriction
+            // Guest mode restriction: Only Grammar Check is allowed
             if (isGuest && instruction !== 'grammar') {
-                 showError("Access Denied!", "As a Guest, you can only use the Grammar Check feature. Sign Up to unlock Paraphrase and Hinglish!");
+                 showError("Access Denied!", "As a Guest, you can only use the Grammar Check feature. Sign Up to unlock all the pro tools!");
                  return;
             }
 
@@ -1179,6 +1353,15 @@
                     actionText = 'Hinglish Translation';
                     systemPrompt = "You are an expert translator specializing in Hinglish (a mixture of Hindi and English) conversation. Translate the user's English text into a natural-sounding Hinglish conversational style. Retain the original meaning and maintain a professional yet casual, friendly tone. The output should be the full translated text.";
                     break;
+                case 'de-escalate':
+                    actionText = 'De-Escalate & Respond';
+                    // UPDATED PROMPT: Generate a direct, empathetic response suitable for sending to the customer.
+                    systemPrompt = "You are an AI Customer Service Specialist. The user's input is a message from an angry or highly escalated customer. Your task is to generate a professional, empathetic, and calming response that the agent can immediately send. The response MUST: 1) Validate the customer's frustration, 2) Summarize the core issue factually (e.g., 'double-charge' and 'broken link'), and 3) Outline the immediate next steps you will take to resolve the issue. Do NOT use emojis. Maintain a highly professional and sincere tone.";
+                    break;
+                case 'tone_adjust':
+                    actionText = `Tone Adjustment: ${tone}`;
+                    systemPrompt = `You are an expert communicator. Rewrite the user's text to adopt a ${tone} tone. The ${tone} tone should be: casual (friendly, simple, relaxed), professional (formal, polite, detailed), or firm (authoritative, clear, direct, non-negotiable). Maintain the core message.`;
+                    break;
                 default:
                     return;
             }
@@ -1196,6 +1379,7 @@
                     // Path: artifacts/appId/users/userId/operations/new_doc_id
                     await setDoc(doc(db, 'artifacts', appId, 'users', userId, 'operations', `op_${Date.now()}`), {
                         action: instruction,
+                        tone: tone, // save tone if applicable
                         input: input,
                         output: result,
                         timestamp: new Date().toISOString()
@@ -1206,6 +1390,28 @@
                 showError(`What the heck? ${actionText} failed!`, error.message);
             }
         }
+        
+        // --- DROPDOWN LOGIC ---
+
+        // Toggle dropdown visibility
+        toneDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevents document listener from closing immediately
+            toneDropdownMenu.classList.toggle('visible');
+        });
+
+        // Handle dropdown item click
+        toneDropdownMenu.addEventListener('click', (e) => {
+            if (e.target.classList.contains('dropdown-item')) {
+                const tone = e.target.getAttribute('data-tone');
+                handleAction('tone_adjust', tone);
+                toneDropdownMenu.classList.remove('visible');
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            toneDropdownMenu.classList.remove('visible');
+        });
 
         // --- VOICE INPUT LOGIC (Web Speech API) ---
 
@@ -1287,6 +1493,7 @@
         grammarBtn.addEventListener('click', () => handleAction('grammar'));
         paraphraseBtn.addEventListener('click', () => handleAction('paraphrase'));
         hinglishBtn.addEventListener('click', () => handleAction('hinglish'));
+        deEscalateBtn.addEventListener('click', () => handleAction('de-escalate')); // De-Escalate handler
         
         // Enter key listener for Grammar Check
         inputTextarea.addEventListener('keydown', (event) => {
