@@ -71,8 +71,15 @@
             <h1 class="text-3xl font-extrabold text-blue-600 mb-2 text-center">Language Pro Access 🔑</h1>
             <p class="text-gray-500 mb-8 text-center" id="auth-title-text">Sign In to continue, bro.</p>
 
-            <div class="max-w-md mx-auto">
-                <form id="auth-form" class="space-y-6">
+            <!-- Auth Mode Toggles -->
+            <div class="flex justify-center mb-6 space-x-4">
+                <button id="mode-email-btn" class="font-semibold text-blue-600 border-b-2 border-blue-600 pb-1 transition duration-150">Email / Password</button>
+                <button id="mode-phone-btn" class="text-gray-500 border-b-2 border-transparent hover:text-blue-600 hover:border-blue-300 pb-1 transition duration-150">Phone / OTP</button>
+            </div>
+
+            <!-- Email/Password Container -->
+            <div id="email-auth-container" class="max-w-md mx-auto">
+                <form id="email-auth-form" class="space-y-6">
                     <div>
                         <label for="auth-email" class="block text-sm font-medium text-gray-700">Email Address</label>
                         <input type="email" id="auth-email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
@@ -92,11 +99,34 @@
                         Don't have an account? Sign Up
                     </button>
                 </div>
+            </div>
 
-                <!-- Auth Error Box -->
-                <div id="auth-error-box" class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden" role="alert">
-                    <p id="auth-error-message" class="font-medium text-sm"></p>
-                </div>
+            <!-- Phone/OTP Container -->
+            <div id="phone-auth-container" class="max-w-md mx-auto hidden">
+                <form id="phone-auth-form" class="space-y-6">
+                    <div>
+                        <label for="phone-number" class="block text-sm font-medium text-gray-700">Phone Number (with country code, e.g., +919876543210)</label>
+                        <input type="tel" id="phone-number" required placeholder="+91..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <!-- OTP Input (Hidden initially) -->
+                    <div id="otp-input-group" class="hidden">
+                        <label for="auth-otp" class="block text-sm font-medium text-gray-700">Verification Code (OTP)</label>
+                        <input type="number" id="auth-otp" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <button type="submit" id="phone-submit-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Request OTP
+                    </button>
+                </form>
+
+                <!-- ReCAPTCHA Container (invisible or visible, depending on Firebase needs) -->
+                <div id="recaptcha-container" class="mt-6"></div>
+            </div>
+
+            <!-- Auth Error Box -->
+            <div id="auth-error-box" class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden" role="alert">
+                <p id="auth-error-message" class="font-medium text-sm"></p>
             </div>
         </div>
 
@@ -167,7 +197,7 @@
     <!-- Firebase and API Call Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithPhoneNumber, RecaptchaVerifier, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
@@ -203,18 +233,33 @@
         let auth;
         let userId = 'anonymous';
 
-        // --- DOM ELEMENTS (unchanged) ---
+        // --- DOM ELEMENTS ---
         const loadingView = document.getElementById('loading-view');
         const authView = document.getElementById('auth-view');
         const appView = document.getElementById('app-view');
 
-        // Auth elements
-        const authForm = document.getElementById('auth-form');
+        // Auth Mode Toggles
+        const modeEmailBtn = document.getElementById('mode-email-btn');
+        const modePhoneBtn = document.getElementById('mode-phone-btn');
+        const emailAuthContainer = document.getElementById('email-auth-container');
+        const phoneAuthContainer = document.getElementById('phone-auth-container');
+
+        // Email Auth elements
+        const emailAuthForm = document.getElementById('email-auth-form');
         const authEmailInput = document.getElementById('auth-email');
         const authPasswordInput = document.getElementById('auth-password');
         const authSubmitBtn = document.getElementById('auth-submit-btn');
         const toggleAuthBtn = document.getElementById('toggle-auth-btn');
         const authTitleText = document.getElementById('auth-title-text');
+
+        // Phone Auth elements
+        const phoneAuthForm = document.getElementById('phone-auth-form');
+        const phoneNumberInput = document.getElementById('phone-number');
+        const otpInputGroup = document.getElementById('otp-input-group');
+        const authOtpInput = document.getElementById('auth-otp');
+        const phoneSubmitBtn = document.getElementById('phone-submit-btn');
+
+        // Shared Auth elements
         const authErrorBox = document.getElementById('auth-error-box');
         const authErrorMessage = document.getElementById('auth-error-message');
         
@@ -239,8 +284,11 @@
         
         // Auth State Management
         let isSigningUp = false;
+        let authMode = 'email'; // 'email' or 'phone'
+        let recaptchaVerifier;
+        let verificationId = null; // Stores the confirmation result for OTP verification
 
-        // --- UTILITY FUNCTIONS (unchanged) ---
+        // --- UTILITY FUNCTIONS ---
         function setView(viewId) {
             loadingView.classList.add('hidden');
             authView.classList.add('hidden-transition');
@@ -249,7 +297,6 @@
             if (viewId === 'auth') {
                 authView.classList.remove('hidden-transition');
                 authView.classList.add('visible-transition');
-                // Ensure hidden is removed right before showing
                 setTimeout(() => {
                      authView.classList.remove('hidden');
                      appView.classList.add('hidden');
@@ -257,7 +304,6 @@
             } else if (viewId === 'app') {
                 appView.classList.remove('hidden-transition');
                 appView.classList.add('visible-transition');
-                // Ensure hidden is removed right before showing
                 setTimeout(() => {
                     appView.classList.remove('hidden');
                     authView.classList.add('hidden');
@@ -300,28 +346,33 @@
         }
 
         // --- FIREBASE INITIALIZATION AND AUTH ---
-
-        // Since firebaseConfig is now hardcoded, it will always be defined
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
             
-            // NOTE: We skip the initialAuthToken logic for external deployment
-            
-            // 2. Set up Auth State Listener
+            // Initialize RecaptchaVerifier on load/startup
+            recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible', 
+                'callback': (response) => {
+                    console.log("reCAPTCHA solved, ready for OTP request.");
+                },
+                'expired-callback': () => {
+                    console.error("reCAPTCHA expired. Please retry.");
+                }
+            });
+
+            // Set up Auth State Listener
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
-                    userEmailDisplay.textContent = user.email || 'Anonymous';
+                    userEmailDisplay.textContent = user.email || user.phoneNumber || 'Authenticated User';
                     console.log("User authenticated:", userId);
                     
-                    // Show the main app view
                     setView('app');
 
                     // Update last active status in Firestore
                     try {
-                        // Path: artifacts/appId/users/userId/settings/app_state
                         await setDoc(doc(db, 'artifacts', appId, 'users', userId, 'settings', 'app_state'), {
                             last_active: new Date().toISOString()
                         }, { merge: true });
@@ -338,12 +389,10 @@
 
         } catch (error) {
             console.error("Firebase initialization failed:", error);
-            // This will only run if there is a syntax error in the hardcoded config
             setView('auth'); 
         }
 
-
-        // --- AUTH HANDLERS (unchanged) ---
+        // --- AUTH HANDLERS: EMAIL/PASSWORD ---
         
         toggleAuthBtn.addEventListener('click', () => {
             isSigningUp = !isSigningUp;
@@ -360,7 +409,7 @@
             }
         });
 
-        authForm.addEventListener('submit', async (e) => {
+        emailAuthForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             hideAuthError();
             
@@ -376,12 +425,12 @@
             authSubmitBtn.textContent = isSigningUp ? "Signing Up..." : "Signing In...";
 
             try {
+                let userCredential;
                 if (isSigningUp) {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
                     
-                    // CRITICAL: Store user profile data in Firestore upon sign up
-                    // Path: artifacts/appId/users/userId/profile/info
+                    // Store user profile data
                     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info'), {
                         email: user.email,
                         created: new Date().toISOString(),
@@ -389,10 +438,10 @@
                     });
 
                 } else {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    userCredential = await signInWithEmailAndPassword(auth, email, password);
                 }
             } catch (error) {
-                console.error("Auth Error:", error);
+                console.error("Email/Password Auth Error:", error);
                 let message = "Authentication failed. Check your email and password.";
                 if (error.code === 'auth/email-already-in-use') {
                     message = "This email is already registered. Try signing in!";
@@ -406,6 +455,124 @@
             }
         });
 
+        // --- AUTH HANDLERS: PHONE/OTP ---
+
+        function setPhoneModeUI(isOtpPhase) {
+            if (isOtpPhase) {
+                otpInputGroup.classList.remove('hidden');
+                phoneNumberInput.disabled = true;
+                phoneSubmitBtn.textContent = "Verify Code";
+            } else {
+                otpInputGroup.classList.add('hidden');
+                phoneNumberInput.disabled = false;
+                phoneSubmitBtn.textContent = "Request OTP";
+                authOtpInput.value = '';
+                verificationId = null;
+            }
+        }
+
+        phoneAuthForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAuthError();
+            
+            const phoneNumber = phoneNumberInput.value.trim();
+            phoneSubmitBtn.disabled = true;
+
+            if (!verificationId) {
+                // PHASE 1: Request OTP
+                if (!phoneNumber) {
+                    showAuthError("Dude, enter a phone number first (+CCXXXXXXXXXX).");
+                    phoneSubmitBtn.disabled = false;
+                    return;
+                }
+                
+                phoneSubmitBtn.textContent = "Sending...";
+
+                try {
+                    // Send OTP using the initialized invisible reCAPTCHA verifier
+                    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+                    verificationId = confirmationResult; // Store for the next phase
+                    
+                    setPhoneModeUI(true);
+                    showAuthError(`OTP sent to ${phoneNumber}! Enter the code below.`);
+                    authOtpInput.focus();
+
+                } catch (error) {
+                    console.error("Phone Auth Request Error:", error);
+                    let message = "Failed to send OTP. Check the phone number format (+CCXXXXXXX) and your Firebase Phone Auth settings.";
+                    if (error.code === 'auth/invalid-phone-number') {
+                        message = "That phone number format looks whack. Use +CCXXXXXXXXXX.";
+                    }
+                    showAuthError(message);
+                    setPhoneModeUI(false);
+                }
+            } else {
+                // PHASE 2: Verify OTP
+                const otpCode = authOtpInput.value.trim();
+                if (!otpCode) {
+                    showAuthError("Yo, enter the 6-digit OTP code.");
+                    phoneSubmitBtn.disabled = false;
+                    return;
+                }
+
+                phoneSubmitBtn.textContent = "Verifying...";
+
+                try {
+                    await verificationId.confirm(otpCode);
+                    // Successful login handled by onAuthStateChanged
+                    // On success, we don't need to manually reset the UI as onAuthStateChanged handles the view change.
+                    
+                    // Note: Firebase creates the user profile automatically. 
+                    // Optional: Store phone number in custom profile document
+                    await setDoc(doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'profile', 'info'), {
+                        phoneNumber: auth.currentUser.phoneNumber,
+                        created: new Date().toISOString(),
+                        app: appId
+                    }, { merge: true });
+
+                } catch (error) {
+                    console.error("Phone Auth Verification Error:", error);
+                    let message = "Verification failed. Wrong code or session expired. Try requesting a new OTP.";
+                    if (error.code === 'auth/invalid-verification-code') {
+                         message = "That code is invalid, bro. Check it and try again.";
+                    }
+                    showAuthError(message);
+                    // Reset to Phase 1 after failure
+                    setPhoneModeUI(false); 
+                }
+            }
+            phoneSubmitBtn.disabled = false;
+        });
+
+        // --- AUTH MODE TOGGLE ---
+
+        modeEmailBtn.addEventListener('click', () => {
+            if (authMode !== 'email') {
+                authMode = 'email';
+                modeEmailBtn.classList.add('text-blue-600', 'border-blue-600', 'font-semibold');
+                modePhoneBtn.classList.remove('text-blue-600', 'border-blue-600', 'font-semibold');
+                modePhoneBtn.classList.add('text-gray-500', 'border-transparent', 'hover:border-blue-300');
+                
+                emailAuthContainer.classList.remove('hidden');
+                phoneAuthContainer.classList.add('hidden');
+                hideAuthError();
+                setPhoneModeUI(false); // Reset phone flow
+            }
+        });
+
+        modePhoneBtn.addEventListener('click', () => {
+            if (authMode !== 'phone') {
+                authMode = 'phone';
+                modePhoneBtn.classList.add('text-blue-600', 'border-blue-600', 'font-semibold');
+                modeEmailBtn.classList.remove('text-blue-600', 'border-blue-600', 'font-semibold');
+                modeEmailBtn.classList.add('text-gray-500', 'border-transparent', 'hover:border-blue-300');
+
+                phoneAuthContainer.classList.remove('hidden');
+                emailAuthContainer.classList.add('hidden');
+                hideAuthError();
+            }
+        });
+
         signOutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth);
@@ -414,6 +581,7 @@
                 showError("Sign Out Failed!", "Something went wrong logging you out.");
             }
         });
+
 
         // --- GEMINI API INTEGRATION (unchanged) ---
 
